@@ -1,17 +1,21 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
+    <tab-control :titles="['流行','新款','精选']"
+                 @tabClick="tabClick"
+                 ref="tabControl1"
+                 class="tab-control" v-show="isTabFixed"/>
     <scroll class="content" ref="scroll"
             :probe-type="3"
             @scroll="contentscroll"
             :pull-up-load="true"
             @pullingUp="loadMore">
-      <home-swiper :banners="banners"/>
+      <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad"/>
       <recommend-view :recommends="recommends"/>
       <feature-view/>
-      <tab-control class="tab-control"
-                   :titles="['流行','新款','精选']"
-                   @tabClick="tabClick"/>
+      <tab-control :titles="['流行','新款','精选']"
+                   @tabClick="tabClick"
+                   ref="tabControl2"/>
       <goods-list :goods="showGoods"/>
     </scroll>
     <back-top @click.native="backClick" v-show="isShowBackTop"/>
@@ -30,6 +34,7 @@
   import BackTop from "../../components/content/backTop/BackTop";
 
   import {getHomeMultidata,getHomeGoods} from "network/home";
+  import {debounce} from "../../common/utils";
 
   export default {
     name: "Home",
@@ -53,13 +58,23 @@
           'sell': {page: 0, list: []},
         },
         currentType: 'pop',
-        isShowBackTop: false
+        isShowBackTop: false,
+        tabOffSetTop: 0,
+        isTabFixed: false,
+        saveY: 0
       }
     },
     computed: {
       showGoods() {
         return this.goods[this.currentType].list
       }
+    },
+    activated() {
+      this.$refs.scroll.scrollTo(0,this.saveY,0)
+      this.$refs.scroll.refresh()
+    },
+    deactivated() {
+      this.saveY = this.$refs.scroll.getScrollY()
     },
     //周期函数,组件创建时调用
     created() {
@@ -70,6 +85,14 @@
       this.getHomeGoods('pop')
       this.getHomeGoods('new')
       this.getHomeGoods('sell')
+
+    },
+    mounted() {
+      const refresh = debounce(this.$refs.scroll.refresh,50)
+      //3.监听item中图片加载完成
+      this.$bus.$on('itemImageLoad',() => {
+        refresh()
+      })
     },
     methods: {
       /*
@@ -87,15 +110,24 @@
             this.currentType = 'sell'
             break
         }
+        this.$refs.tabControl1.currentIndex = index;
+        this.$refs.tabControl2.currentIndex = index;
       },
       backClick() {
+        //回到顶部
         this.$refs.scroll.scrollTo(0,0)
       },
       contentscroll(position) {
+        //1.判断BackTop是否显示
         this.isShowBackTop = (-position.y) > 1000;
+        //2.决定tabControl是否吸顶（position:fixed）
+        this.isTabFixed = (-position.y) > this.tabOffSetTop
       },
       loadMore() {
         this.getHomeGoods(this.currentType)
+      },
+      swiperImageLoad() {
+        this.tabOffSetTop = this.$refs.tabControl2.$el.offsetTop;
       },
       /*
       * 网络请求相关的方法
@@ -113,6 +145,7 @@
           // console.log(res);
           this.goods[type].list.push(...res.data.list)
           this.goods[type].page +=1
+          //完成上拉加载更多
           this.$refs.scroll.finishPullUp()
         })
       },
@@ -136,12 +169,6 @@
     top: 0;
     z-index: 9;
   }
-  .tab-control{
-    /*元素的位置移出偏移范围时，定位变成 fixed*/
-    position: sticky;
-    top: 44px;
-    z-index: 9;
-  }
   .content {
     overflow: hidden;
     position: absolute;
@@ -149,6 +176,10 @@
     bottom: 49px;
     left: 0;
     right: 0;
+  }
+  .tab-control {
+    position: relative;
+    z-index: 9;
   }
   /*.content {*/
   /*  height: calc(100% - 93px);*/

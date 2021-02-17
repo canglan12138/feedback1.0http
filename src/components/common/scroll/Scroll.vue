@@ -30,6 +30,7 @@
         this.scroll = new BScroll(this.$refs.wrapper,{
           click: true,
           probeType: this.probeType,
+          //监听滚动到底部
           pullUpLoad: this.pullUpLoad
         })
       //2.监听滚动区域
@@ -43,11 +44,21 @@
       })
     },
     methods: {
+      //返回顶部
       scrollTo(x,y,time=300){
-        this.scroll.scrollTo(x,y,time)
+        this.scroll && this.scroll.scrollTo(x,y,time)
       },
+      //上拉获取更多
       finishPullUp() {
-        this.scroll.finishPullUp()
+        this.scroll && this.scroll.finishPullUp()
+      },
+      //刷新
+      refresh(){
+        this.scroll && this.scroll.refresh()
+      },
+      //获取 y 值
+      getScrollY() {
+        return this.scroll ? this.scroll.y : 0
       }
     }
   }
