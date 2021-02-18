@@ -1,10 +1,10 @@
-export function debounce(func,delay) {
+export function debounce(func,delay=50) {
   //防抖操作
   let timer = null
   return function (...args) {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
-      func.apply(this,args)
+      func(...args)
     },delay)
   }
 }

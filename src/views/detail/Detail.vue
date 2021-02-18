@@ -1,15 +1,19 @@
 <template>
   <div id="detail">
-    <detail-nav-bar class="detail-nav"/>
-    <scroll class="content" ref="scroll">
+    <detail-nav-bar class="detail-nav" @titleClick="titleClick" ref="nav"/>
+    <scroll class="content" ref="scroll"
+            :probe-type="3"
+            @scroll="contentScroll">
       <detail-swiper :top-images="topImage"/>
       <detail-base-info :goods="goods"/>
       <detail-shop-info :shop="shop"/>
-      <detail-goods-info :detail-info="detailInfo" @imgLoad="imageLoad"/>
-      <detail-param-info :param-info="paramInfo"/>
-      <detail-comment-info :comment-info="commentInfo"/>
-      <goods-list :goods="recommends"/>
+      <detail-goods-info :detail-info="detailInfo" @imageLoad="imageLoad"/>
+      <detail-param-info ref="params" :param-info="paramInfo"/>
+      <detail-comment-info ref="comment" :comment-info="commentInfo"/>
+      <goods-list ref="recommend" :goods="recommends"/>
     </scroll>
+    <detail-bottom-bar/>
+    <back-top @click.native="backClick" v-show="isShowBackTop"/>
   </div>
 </template>
 
@@ -21,12 +25,14 @@
   import DetailGoodsInfo from "./childComps/DetailGoodsInfo";
   import DetailParamInfo from "./childComps/DetailParamInfo";
   import DetailCommentInfo from "./childComps/DetailCommentInfo";
+  import DetailBottomBar from "./childComps/DetailBottomBar";
 
   import Scroll from "../../components/common/scroll/Scroll";
   import GoodsList from "../../components/content/goods/GoodsList";
 
   import {getDetail,Goods,Shop,GoodsParam,getRecommend} from "../../network/detail";
-  import {itemListenerMixin} from 'common/mixin'
+  import {itemListenerMixin,backTopMixin} from 'common/mixin'
+  import {debounce} from "../../common/utils";
 
   export default {
     name: "Detail",
@@ -38,10 +44,11 @@
       DetailGoodsInfo,
       DetailParamInfo,
       DetailCommentInfo,
+      DetailBottomBar,
       Scroll,
       GoodsList
     },
-    mixins: [itemListenerMixin],
+    mixins: [itemListenerMixin,backTopMixin],
     data() {
       return {
         iid: null,
@@ -52,12 +59,40 @@
         paramInfo: {},
         commentInfo: {},
         recommends: [],
+        themeTopYs:[],
+        getThemeTopY: null,
       }
     },
     methods: {
       imageLoad() {
-        this.$refs.scroll.refresh()
-      }
+        this.refresh()
+        this.getThemeTopY()
+      },
+      titleClick(index) {
+        // console.log(index);
+        this.$refs.scroll.scrollTo(0,-this.themeTopYs[index],100)
+      },
+      contentScroll(position) {
+        //1.获取y值
+        const positionY = - position.y
+        //2.positionY和主题中的值进行对比
+        //显示对应的标题
+        let length = this.themeTopYs.length
+        for (let i = 0; i < length-1; i++) {
+          if (this.currentIndex !== i && (positionY >= this.themeTopYs[i] && positionY
+          < this.themeTopYs[i+1])) {
+            this.currentIndex = i;
+              this.$refs.nav.currentIndex = this.currentIndex
+          }
+          // if(this.currentIndex !== i && ((i<length - 1 && positionY >= this.themeTopYs[i] && positionY < this.themeTopYs[i+1]) ||
+          //   (i === length - 1 && positionY >= this.themeTopYs[i]))) {
+          //   this.currentIndex = i;
+          //   this.$refs.nav.currentIndex = this.currentIndex
+          // }
+        }
+        //是否显示回到顶部
+        this.listenShowBack(position)
+      },
     },
     created() {
       //1.保存传入的iid
@@ -81,12 +116,30 @@
         if (data.rate.cRate !== 0) {
           this.commentInfo = data.rate.list[0]
         }
+        //根据最新的数据，渲染DOM
+        //但是图片没有加载完成，目前获取到的offsetTop不包含图片
+        // this.$nextTick(() => {
+        //   this.thiemeTopYs = []
+        //   this.thiemeTopYs.push(0)
+        //   this.thiemeTopYs.push(this.$refs.params.$el.offsetTop)
+        //   this.thiemeTopYs.push(this.$refs.comment.$el.offsetTop)
+        //   this.thiemeTopYs.push(this.$refs.recommend.$el.offsetTop)
+        // })
       })
       //3.请求推荐数据
       getRecommend().then(res => {
         // console.log(res);
         this.recommends = res.data.list
       })
+      //4.给getThemeTopY赋值
+      this.getThemeTopY = debounce(() => {
+        this.themeTopYs = []
+        this.themeTopYs.push(0)
+        this.themeTopYs.push(this.$refs.params.$el.offsetTop)
+        this.themeTopYs.push(this.$refs.comment.$el.offsetTop)
+        this.themeTopYs.push(this.$refs.recommend.$el.offsetTop)
+        this.themeTopYs.push(Number.MAX_VALUE)
+      },100)
     },
     mounted() {
     },
@@ -106,9 +159,9 @@
   .detail-nav {
     position: relative;
     z-index: 9;
-    background-color: #fff;
+    background-color: #ffffff;
   }
   .content {
-    height: calc(100% - 44px);
+    height: calc(100% - 44px - 52px);
   }
 </style>

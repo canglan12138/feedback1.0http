@@ -54,6 +54,7 @@
       },
       //刷新
       refresh(){
+        // console.log('....');
         this.scroll && this.scroll.refresh()
       },
       //获取 y 值
