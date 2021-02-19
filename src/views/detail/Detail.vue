@@ -12,7 +12,7 @@
       <detail-comment-info ref="comment" :comment-info="commentInfo"/>
       <goods-list ref="recommend" :goods="recommends"/>
     </scroll>
-    <detail-bottom-bar/>
+    <detail-bottom-bar @addcart="addToCart"/>
     <back-top @click.native="backClick" v-show="isShowBackTop"/>
   </div>
 </template>
@@ -76,7 +76,7 @@
         //1.获取y值
         const positionY = - position.y
         //2.positionY和主题中的值进行对比
-        //显示对应的标题
+        //内容滚动，显示对应的标题
         let length = this.themeTopYs.length
         for (let i = 0; i < length-1; i++) {
           if (this.currentIndex !== i && (positionY >= this.themeTopYs[i] && positionY
@@ -93,13 +93,25 @@
         //是否显示回到顶部
         this.listenShowBack(position)
       },
+      addToCart() {
+        //1.获取购物车需要展示的信息
+        const product = {}
+        product.image = this.topImage[0];
+        product.title = this.goods.title;
+        product.desc = this.goods.desc;
+        product.price = this.goods.realPrice;
+        product.iid = this.iid;
+
+        //2.商品提交到store
+        this.$store.dispatch('addCart',product)
+      }
     },
     created() {
       //1.保存传入的iid
       this.iid = this.$route.params.iid
       //2.根据iid请求详情数据
       getDetail(this.iid).then(res => {
-        // console.log(res);
+        console.log(res);
         //1.获取数据
         const data = res.result
         //2.获取顶部的图片轮播数据
