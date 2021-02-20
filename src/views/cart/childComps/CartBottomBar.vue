@@ -9,7 +9,7 @@
     <div class="price">
       合计：{{totlaPrice}}
     </div>
-    <div class="calculate">
+    <div class="calculate" @click="calcClick">
       去计算({{checkLength}})
     </div>
   </div>
@@ -61,6 +61,11 @@
         //     item.checked = true
         //   }
         // }
+      },
+      calcClick() {
+        if (!this.isSelectAll) {
+          this.$toast.show('请选择商品')
+        }
       }
     }
   }

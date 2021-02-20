@@ -1,6 +1,6 @@
 <template>
   <div class="goods-item" @click="itemClick">
-    <img :src="showImage" @load="imageLoad">
+    <img v-lazy="showImage" @load="imageLoad">
     <div class="goods-info">
       <p>{{goodsItem.title}}</p>
       <span class="price">{{goodsItem.price}}</span>
@@ -27,6 +27,7 @@
     },
     methods: {
       imageLoad() {
+        //发送总线事件
         this.$bus.$emit('itemImageLoad')
       },
       itemClick() {
